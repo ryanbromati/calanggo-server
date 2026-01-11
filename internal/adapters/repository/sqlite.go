@@ -7,7 +7,6 @@ import (
 	"calanggo-server/internal/core/domain"
 	"calanggo-server/internal/core/ports"
 
-	// Importa o driver mas não o usa diretamente (apenas registra no database/sql)
 	_ "github.com/glebarez/go-sqlite"
 )
 
