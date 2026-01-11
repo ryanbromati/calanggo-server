@@ -113,8 +113,6 @@ Executar tarefa sem travar o request.
 
 ---
 
-## 6. O Que Você Vai Encontrar em Breve (Antecipando Dúvidas)
-
 ### A. Tratamento de Erro (`if err != nil`)
 Go não tem `try/catch` para lógica de negócio. Funções retornam erros como valores.
 ```go
