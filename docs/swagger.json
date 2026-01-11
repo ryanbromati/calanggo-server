@@ -1,0 +1,128 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "API de alta performance para encurtamento de URLs em Go.",
+        "title": "Calanggo URL Shortener API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "http://www.swagger.io/support",
+            "email": "support@swagger.io"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/api/v1/shorten": {
+            "post": {
+                "description": "Recebe uma URL longa e retorna o link encurtado com o código gerado.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "links"
+                ],
+                "summary": "Cria um link curto",
+                "parameters": [
+                    {
+                        "description": "URL para encurtar",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/http.CreateLinkRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/http.CreateLinkResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/{code}": {
+            "get": {
+                "description": "Busca o código curto e redireciona o usuário (HTTP 302).",
+                "tags": [
+                    "links"
+                ],
+                "summary": "Redireciona para a URL original",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Código curto do link",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "Location header com a URL original",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Link not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "http.CreateLinkRequest": {
+            "type": "object",
+            "properties": {
+                "original_url": {
+                    "type": "string",
+                    "example": "https://www.google.com"
+                }
+            }
+        },
+        "http.CreateLinkResponse": {
+            "type": "object",
+            "properties": {
+                "original_url": {
+                    "type": "string",
+                    "example": "https://www.google.com"
+                },
+                "short_code": {
+                    "type": "string",
+                    "example": "7rB8u"
+                },
+                "short_url": {
+                    "type": "string",
+                    "example": "http://localhost:8080/7rB8u"
+                }
+            }
+        }
+    }
+}

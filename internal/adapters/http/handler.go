@@ -15,24 +15,36 @@ func NewLinkHandler(service ports.LinkService) *LinkHandler {
 	return &LinkHandler{service: service}
 }
 
-type createLinkRequest struct {
-	OriginalURL string `json:"original_url"`
+// CreateLinkRequest represents the request body for creating a short link
+type CreateLinkRequest struct {
+	OriginalURL string `json:"original_url" example:"https://www.google.com"`
 }
 
-type createLinkResponse struct {
-	ShortCode   string `json:"short_code"`
-	ShortURL    string `json:"short_url"`
-	OriginalURL string `json:"original_url"`
+// CreateLinkResponse represents the response for a created short link
+type CreateLinkResponse struct {
+	ShortCode   string `json:"short_code" example:"7rB8u"`
+	ShortURL    string `json:"short_url" example:"http://localhost:8080/7rB8u"`
+	OriginalURL string `json:"original_url" example:"https://www.google.com"`
 }
 
-// CreateShortLink - POST /api/v1/shorten
+// CreateShortLink godoc
+// @Summary      Cria um link curto
+// @Description  Recebe uma URL longa e retorna o link encurtado com o código gerado.
+// @Tags         links
+// @Accept       json
+// @Produce      json
+// @Param        request body CreateLinkRequest true "URL para encurtar"
+// @Success      201  {object}  CreateLinkResponse
+// @Failure      400  {string}  string "Invalid request body"
+// @Failure      500  {string}  string "Internal Server Error"
+// @Router       /api/v1/shorten [post]
 func (h *LinkHandler) CreateShortLink(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	var req createLinkRequest
+	var req CreateLinkRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
@@ -44,7 +56,7 @@ func (h *LinkHandler) CreateShortLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := createLinkResponse{
+	resp := CreateLinkResponse{
 		ShortCode:   link.Shortened,
 		ShortURL:    "http://" + r.Host + "/" + link.Shortened,
 		OriginalURL: link.Original,
@@ -55,7 +67,14 @@ func (h *LinkHandler) CreateShortLink(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
-// Redirect - GET /{code}
+// Redirect godoc
+// @Summary      Redireciona para a URL original
+// @Description  Busca o código curto e redireciona o usuário (HTTP 302).
+// @Tags         links
+// @Param        code path string true "Código curto do link"
+// @Success      302  {string}  string "Location header com a URL original"
+// @Failure      404  {string}  string "Link not found"
+// @Router       /{code} [get]
 func (h *LinkHandler) Redirect(w http.ResponseWriter, r *http.Request) {
 	code := r.PathValue("code")
 	if code == "" {

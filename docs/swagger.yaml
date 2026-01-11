@@ -1,0 +1,86 @@
+basePath: /
+definitions:
+  http.CreateLinkRequest:
+    properties:
+      original_url:
+        example: https://www.google.com
+        type: string
+    type: object
+  http.CreateLinkResponse:
+    properties:
+      original_url:
+        example: https://www.google.com
+        type: string
+      short_code:
+        example: 7rB8u
+        type: string
+      short_url:
+        example: http://localhost:8080/7rB8u
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: API de alta performance para encurtamento de URLs em Go.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Calanggo URL Shortener API
+  version: "1.0"
+paths:
+  /{code}:
+    get:
+      description: Busca o código curto e redireciona o usuário (HTTP 302).
+      parameters:
+      - description: Código curto do link
+        in: path
+        name: code
+        required: true
+        type: string
+      responses:
+        "302":
+          description: Location header com a URL original
+          schema:
+            type: string
+        "404":
+          description: Link not found
+          schema:
+            type: string
+      summary: Redireciona para a URL original
+      tags:
+      - links
+  /api/v1/shorten:
+    post:
+      consumes:
+      - application/json
+      description: Recebe uma URL longa e retorna o link encurtado com o código gerado.
+      parameters:
+      - description: URL para encurtar
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/http.CreateLinkRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/http.CreateLinkResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Cria um link curto
+      tags:
+      - links
+swagger: "2.0"
