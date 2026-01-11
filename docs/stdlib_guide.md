@@ -1,5 +1,5 @@
 # Guia da Standard Library do Go (Baterias Inclusas)
-*As bibliotecas nativas utilizadas no projeto Calanggo-Server e seus equivalentes no mundo .NET.*
+*As bibliotecas nativas utilizadas no projeto calanggo-server e seus equivalentes no mundo .NET.*
 
 ## 1. Web & Networking
 
