@@ -23,6 +23,10 @@ Diferente de C# (onde `class` é ref e `struct` é value), em Go **tudo é Value
 *   **`*Tipo`** (ex: `*Link`): "Eu guardo um **endereço** de memória, não o valor em si." (Reference Type).
 *   **`&Variavel`** (ex: `&meuLink`): "Me dê o **endereço** onde essa variável está guardada."
 
+### A Diferença: Contrato vs Entrega
+*   **Assinatura (`func X() *Link`)**: O Contrato. "Prometo retornar um endereço".
+*   **Retorno (`return &Link{}`)**: A Ação. "Aqui está o endereço do objeto que criei".
+
 ### Quando usar?
 1.  **Performance:** Evitar copiar structs gigantes. Passe `*Struct`.
 2.  **Mutabilidade:** Se você quer alterar o objeto original dentro de uma função, **tem** que passar o ponteiro.
@@ -53,11 +57,6 @@ Go não deixa declarar variável e não usar. Se não precisa do índice:
 for _, n := range nomes { ... } // Ignora o índice
 ```
 
-### "While"
-```go
-for contador < 10 { ... }
-```
-
 ### LINQ? Não existe.
 Não procure `.Where().Select()`. A filosofia do Go é "Loops explícitos são melhores que mágica oculta".
 *   **Filter:** Faça um `for` com `if` e `append`.
@@ -70,19 +69,37 @@ Não procure `.Where().Select()`. A filosofia do Go é "Loops explícitos são m
 ## 4. Estruturas e Dados
 
 ### `make` vs `new`
-*   **`make([]int, 0, 10)`**: Inicializa estruturas complexas (Slices, Maps, Channels). É o `new List<int>(10)`.
-*   **Struct Tags (`json:"..."`)**: Equivalente aos Attributes `[JsonPropertyName]`. Define metadados para bibliotecas (JSON, ORMs).
+*   **`make`**: Inicializa estruturas que precisam de configuração interna (Slices, Maps, Channels).
+*   **`new`**: Aloca memória zerada e retorna ponteiro (raramente usado para maps/slices).
+
+### Map (Dictionary)
+`map[KeyType]ValueType`.
+*   **C#:** `Dictionary<TKey, TValue>`.
+*   **Inicialização:** `m := make(map[string]int)`.
+    *   ⚠️ **Perigo:** Se usar apenas `var m map[string]int`, ele é `nil`. Escrever nele (`m["key"]=1`) causa **Panic**.
+*   **Thread-Safety:** **NÃO** é seguro. Se duas goroutines escreverem ao mesmo tempo, app crasha. Use `sync.RWMutex` para proteger.
 
 ### Slice (Lista Dinâmica)
-Um Slice é uma "janela" para um array. É leve e rápido.
+Uma "janela" para um array.
 ```go
-lista := make([]string, 0, 5) // Len 0, Cap 5
-lista = append(lista, "Item") // Adiciona e retorna a nova referência slice
+// make([]Type, len, cap)
+lista := make([]string, 0, 5) // Len 0, Cap 5 (Alocação prévia para performance)
+lista = append(lista, "Item") 
 ```
 
 ---
 
 ## 5. Web & Concorrência
+
+### Channels (`chan`)
+O "Tubo" de comunicação entre Goroutines.
+*   **C#:** `System.Threading.Channels` ou `BlockingCollection`.
+*   **Sintaxe:** `make(chan Tipo, Buffer)`.
+*   **Unbuffered:** `make(chan int)` -> Bloqueia o sender até alguém ler. (Sincronismo puro).
+*   **Buffered:** `make(chan int, 100)` -> Aceita 100 itens sem bloquear o sender. Age como uma Fila.
+*   **Uso:** 
+    *   `ch <- valor` (Envia/Produz)
+    *   `valor := <-ch` (Recebe/Consome)
 
 ### Mux (`http.NewServeMux`)
 É o Roteador (`app.MapControllers`).
@@ -109,19 +126,14 @@ if err != nil {
 
 ### B. Interfaces Implícitas (Duck Typing)
 Você não declara `class MeuServico implements IService`.
-Se sua struct tiver os métodos da interface, ela **automaticamente** implementa a interface. Isso permite criar interfaces para classes que você nem é dono!
+Se sua struct tiver os métodos da interface, ela **automaticamente** implementa a interface.
 
 ### C. `defer`
 Executa algo no final da função (útil para `Dispose`/`finally`).
 ```go
 f, _ := os.Open("arq")
-defer f.Close() // Será executado quando a função sair, não importa como
+defer f.Close() // Será executado quando a função sair
 ```
-
-### D. Pacotes Públicos vs Privados
-*   **Letra Maiúscula:** Público (Exportado). `func Save()`
-*   **Letra Minúscula:** Privado (Internal). `func save()`
-Isso vale para funcões, structs, campos e constantes.
 
 ---
 
@@ -134,59 +146,39 @@ O objeto `t` é o seu **Controlador de Teste** injetado.
 | :--- | :--- | :--- |
 | `Assert.Equal(exp, act)` | `if exp != act { t.Errorf(...) }` | **Soft Fail:** Marca erro, mas continua executando o teste. |
 | `Assert.NotNull(obj)` | `if obj == nil { t.Fatalf(...) }` | **Hard Fail:** Para o teste na hora (útil se o próximo passo causaria Panic). |
-| `Console.WriteLine()` | `t.Logf(...)` | Só aparece no console se o teste falhar ou usar `go test -v`. |
-| `[Theory] / [InlineData]` | `t.Run("nome", func(t...) {})` | **Table-Driven Tests:** Cria sub-testes nomeados dentro de um loop. |
 
 ---
 
 ## 8. Zero Values (O "Null" Diferente)
 
-Em C#, se você não inicializa um objeto, ele é `null`. Em Go, variáveis sempre começam com um valor "utilizável", nunca lixo de memória.
+Em C#, se você não inicializa um objeto, ele é `null`. Em Go, variáveis sempre começam com um valor "utilizável".
 
 | Tipo | Zero Value em Go | Em C# seria... |
 | :--- | :--- | :--- |
 | `int` / `float` | `0` | `0` |
-| `bool` | `false` | `false` |
 | `string` | `""` (vazia, não nil) | `null` |
-| `pointer` | `nil` | `null` |
-| `struct` | Todos os campos zerados | `null` |
-
-**Cuidado:** Como saber se `Preco == 0` significa "Grátis" ou "Não informado"?
-*   **Solução:** Use ponteiro (`*int`). Se for `nil`, não foi informado. Se for `0` (apontando para valor), é grátis.
+| `pointer` / `interface` | `nil` | `null` |
 
 ---
 
 ## 9. Contexto: Timeouts e Cancelamento
 
-O `context.Context` é vital para backends robustos. É o equivalente ao `CancellationToken` do C#, mas turbinado.
+O `context.Context` é vital. É o equivalente ao `CancellationToken` do C#.
 
 ```go
-// Define um limite de 2 segundos para tudo que usar este ctx
+// Define um limite de 2 segundos
 ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-defer cancel() // Sempre chame cancel para liberar recursos!
+defer cancel() 
 
-// Passa o ctx para o banco. Se demorar > 2s, o Go aborta a conexão.
+// Se demorar > 2s, o Go aborta a conexão
 err := repo.Save(ctx, dados) 
 ```
-Se você não usar Context com Timeouts, seu servidor vai acumular conexões presas ("hanging") até cair.
-
----
 
 ## 10. Generics (Go 1.18+)
 
-C# tem Generics poderosos. Go agora tem o básico. A sintaxe usa colchetes `[]`.
+Sintaxe com colchetes `[]`.
 
-**Exemplo: Função que imprime qualquer slice**
 ```go
 // T any = T pode ser qualquer coisa
-func PrintSlice[T any](s []T) {
-    for _, v := range s {
-        fmt.Println(v)
-    }
-}
-
-// Uso
-PrintSlice[int]([]int{1, 2})
-PrintSlice[string]([]string{"a", "b"})
+func PrintSlice[T any](s []T) { ... }
 ```
-*Nota:* Em Go, tente resolver primeiro com **Interfaces**. Use Generics apenas quando estiver escrevendo estruturas de dados ou algoritmos genéricos.
